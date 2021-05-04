@@ -1,0 +1,8 @@
+version: '3'
+services:
+  python:
+    build: .
+    container_name: python
+    volumes:
+      - ./start.sh:/start.sh
+      - ./app:/app
