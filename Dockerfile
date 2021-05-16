@@ -1,5 +1,7 @@
 # 任意のイメージを取得
-FROM python:3.10-rc-slim-buster
+FROM python
+
+RUN pip install python-dotenv
 
 WORKDIR /app
 
