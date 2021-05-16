@@ -12,5 +12,4 @@ ENV_DIC = {}
 ENV_KEYS = ['video_id']
 
 for key in ENV_KEYS:
-    ENV_DIC[key] = os.environ.get(key)
-    
+  ENV_DIC[key] = os.environ.get(key)

@@ -4,17 +4,16 @@ import glob
 import settings
 import json
 import MeCab
-import SequenceMatcher
+from difflib import SequenceMatcher 
 
 import sys
 sys.path.append('./')
-from CommentEnum import CommentEnum 
+from commentutil import CommentEnum 
 
 NG_PATTERN_DIR = './input/ng_pattern/**'
 
 # envのキーを読み込む。
-keyIndex = 0
-VIDEO_ID = settings.ENV_KEYS[keyIndex]; keyIndex = keyIndex + 1;
+VIDEO_ID = settings.ENV_DIC['video_id']
 
 # 辞書ファイルパス
 DIC_PATH = ' -d /usr/local/mecab/lib/mecab/dic/mecab-ipadic-neologd'
@@ -119,9 +118,9 @@ def morphological_analysis(live_comments):
     type = str(live_comments[key][SNIPPET]['type'])
     try:
       commentEnum = CommentEnum.value_of(type)
-      commentKeys = commentEnum[CommentEnum.COMMENT_KEY]
+      commentKeys = commentEnum.get_keys();
       tmp = live_comments[key][SNIPPET]
-      for commentKey in len(commentKeys):
+      for commentKey in commentKeys:
         # コメントを取得する
         tmp = tmp[commentKey]
       # 形態素解析結果取得
@@ -162,7 +161,7 @@ def get_ng_chat_id(mplg_results, ng_pattern, threshold):
   
   """
   ng_comments = {}
-  for comment_key in range(0, len(mplg_results)):
+  for comment_key in mplg_results:
     mplg_result = mplg_results[comment_key]
     for ng_key in ng_pattern:
       similarity = SequenceMatcher(
@@ -204,7 +203,7 @@ def merge_ng_comments(comment_dict, ng_comment_dict):
     
     return_comment_list = []
 
-    for key in range(0, len(comment_dict)):
+    for key in comment_dict:
         comment_info = comment_dict[key]
         if key in ng_comment_dict:
             comment_info[NG_FLG_KEY] = True
@@ -216,20 +215,27 @@ def merge_ng_comments(comment_dict, ng_comment_dict):
     return return_comment_list
 
 if __name__ == '__main__':
+
+
   # NGパターンの読み込み
   ng_pattern = get_ng_patterns()
-  
+  print(len(ng_pattern))
+
   # 指定されたVIDEO_IDのコメントファイル読み込み
+  print('VIDEO_ID : {}'.format(VIDEO_ID))
   live_comment_dict = get_live_comments(VIDEO_ID)
-  
+
   # コメントの形態素解析
   morphological_analysis_result_dict = morphological_analysis(live_comment_dict)
+  print(len(morphological_analysis_result_dict))
   
   # 形態素解析したコメントとNGパターンの突合
   ng_comments = get_ng_chat_id(morphological_analysis_result_dict, ng_pattern, SIMILARITY_THRESHOLD)
+  print(len(ng_comments))
   
   # 元のコメントjsonにNGフラグを設定
   comments_ng_merged = merge_ng_comments(live_comment_dict, ng_comments)
+  print(len(comments_ng_merged))
   
   # NGフラグを設定したコメントのjsonを出力
   # 結果をファイルに出力
