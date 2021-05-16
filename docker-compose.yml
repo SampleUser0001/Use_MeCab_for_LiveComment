@@ -2,7 +2,7 @@ version: '3'
 services:
   python:
     build: .
-    container_name: python
+    container_name: use_mecab_live_comment
     volumes:
       - ./start.sh:/start.sh
       - ./app:/app

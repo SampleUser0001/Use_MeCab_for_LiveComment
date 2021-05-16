@@ -2,30 +2,26 @@
 from enum import Enum
 
 class CommentEnum(Enum):
+  ENUM_KEY = "enumKey"
+  COMMENT_KEY = "commentKey"
+  
   textMessageEvent = {
-    "key":"textMessageEvent",
-    "detailsKey":"textMessageDetails",
-    "commentKey":"messageText"
+    ENUM_KEY: "textMessageEvent",
+    COMMENT_KEY: ["textMessageDetails","messageText"]
   }
   superChatEvent = {
-    "key":"superChatEvent",
-    "detailsKey":"superChatDetails",
-    "commentKey":"userComment" 
+    ENUM_KEY: "superChatEvent",
+    COMMENT_KEY: ["superChatDetails","userComment"]
   }
   superStickerEvent = {
-    "key":"superStickerEvent",
-    "detailsKey":"superStickerDetails",
-    "metaKey":"superStickerMetadata", 
-    "commentKey":"superStickerMetadata"
+    ENUM_KEY: "superStickerEvent",
+    COMMENT_KEY: [ "superStickerDetails","superStickerMetadata", "superStickerMetadata"]
   }
   
   @classmethod
   def value_of(cls, target_value):
     for e in CommentEnum:
-      if e['key'] == target_value:
+      if e[CommentEnum.ENUM_KEY] == target_value:
         return e
     raise ValueError('{} is not found.'.format(target_value))
     
-  @classmethod
-  def get_comment(cls, snippet):
-    keys = CommentEnum.value_of(snippet[''])
