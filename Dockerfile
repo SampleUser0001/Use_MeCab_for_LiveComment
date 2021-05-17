@@ -4,6 +4,9 @@ FROM python
 RUN apt update && apt upgrade -y
 RUN apt install -y wget gcc make g++ less
 
+RUN git config --global ssh.postBuffer 524288000
+RUN git config --global http.postBuffer 524288000
+
 # MeCabインストール
 WORKDIR /root
 RUN wget -O "mecab.tar.gz" "https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7cENtOXlicTFaRUE"

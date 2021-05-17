@@ -83,7 +83,7 @@ def get_live_comments(video_id):
       # コメント本体(items配下)だけほしい。
       for comment in comments['items']:
         comment_id = comment['id']
-        live_comments['id'] = comment;
+        live_comments[comment_id] = comment;
   return live_comments
 
 def morphological_analysis(live_comments):
@@ -219,23 +219,24 @@ if __name__ == '__main__':
 
   # NGパターンの読み込み
   ng_pattern = get_ng_patterns()
-  print(len(ng_pattern))
+  print("ng_pattern len : {} ".format(len(ng_pattern)))
 
   # 指定されたVIDEO_IDのコメントファイル読み込み
   print('VIDEO_ID : {}'.format(VIDEO_ID))
   live_comment_dict = get_live_comments(VIDEO_ID)
+  print("live_comment_dict len : {} ".format(len(live_comment_dict)))
 
   # コメントの形態素解析
   morphological_analysis_result_dict = morphological_analysis(live_comment_dict)
-  print(len(morphological_analysis_result_dict))
+  print("morphological_analysis_result_dict len : {} ".format(len(morphological_analysis_result_dict)))
   
   # 形態素解析したコメントとNGパターンの突合
   ng_comments = get_ng_chat_id(morphological_analysis_result_dict, ng_pattern, SIMILARITY_THRESHOLD)
-  print(len(ng_comments))
+  print("ng_comments len : {} ".format(len(ng_comments)))
   
   # 元のコメントjsonにNGフラグを設定
   comments_ng_merged = merge_ng_comments(live_comment_dict, ng_comments)
-  print(len(comments_ng_merged))
+  print("comments_ng_merged len : {} ".format(len(comments_ng_merged)))
   
   # NGフラグを設定したコメントのjsonを出力
   # 結果をファイルに出力
