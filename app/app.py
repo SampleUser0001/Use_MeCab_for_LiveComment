@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 
 import sys
 sys.path.append('./')
-from commentutil import CommentEnum 
+from commentutil import NGCommentKeyEnum, CommentTypeEnum 
 from util import LogUtil
 
 logger = getLogger(__name__)
@@ -20,7 +20,6 @@ handler.setLevel(DEBUG)
 logger.setLevel(DEBUG)
 logger.addHandler(handler)
 logger.propagate = False
-
 
 NG_PATTERN_DIR = './input/ng_pattern/**'
 
@@ -41,8 +40,9 @@ SIMILARITY_THRESHOLD = 0.8
 NG_FLG_KEY = 'ng_flg'
 NG_INFO_KEY = 'ng_info'
 
-OUTPUT_DIR = './output/'
-FILE_NAME = 'result'
+OUTPUT_DIR_ALL = './output/all/'
+OUTPUT_DIR_NG_CHANNEL = './output/ng_channel/'
+OUTPUT_DIR_NG_MESSAGES = './output/ng_message/'
 
 def get_ng_patterns():
   """
@@ -129,8 +129,8 @@ def morphological_analysis(live_comments):
     # ['snippet']['type']はチャットの種類(superChatEvent, superStickerEvent, textMessageEvent)を持っている。
     type = str(live_comments[key][SNIPPET]['type'])
     try:
-      commentEnum = CommentEnum.value_of(type)
-      commentKeys = commentEnum.get_keys();
+      commentTypeEnum = CommentTypeEnum.value_of(type)
+      commentKeys = commentTypeEnum.get_keys();
       tmp = live_comments[key][SNIPPET]
       logger.info("comment_id:{} , type:{}".format(key, type))
 
@@ -150,11 +150,11 @@ def morphological_analysis(live_comments):
   return morphological_analysis_result
 
 def mplg(text):
-    """ 形態素解析を行う。
-    """
-    m = MeCab.Tagger(DIC_PATH)
-    soup = m.parse (text)
-    return soup
+  """ 形態素解析を行う。
+  """
+  m = MeCab.Tagger(DIC_PATH)
+  soup = m.parse (text)
+  return soup
 
 def get_ng_chat_id(mplg_results, ng_pattern, threshold):
   """
@@ -196,48 +196,72 @@ def get_ng_chat_id(mplg_results, ng_pattern, threshold):
   return ng_comments
 
 def merge_ng_comments(comment_dict, ng_comment_dict):
-    """
-    コメントにNG情報を付与する
-    
-    Parameters:
-    ----
-    comment_dict : dict
-      get_live_comments(string)の戻り値
-      key : string
-        コメントID
-      value : json
-        コメント
+  """
+  コメントにNG情報を付与する
+  
+  Parameters:
+  ----
+  comment_dict : dict
+    get_live_comments(string)の戻り値
+    key : string
+      コメントID
+    value : json
+      コメント
 
-    ng_comment_dict : dict
-      get_ng_chat_id(dict, dict, float)の戻り値
-      key : string
-        コメントID。comment_dictと同値。
-      value : list
-        [ng_patternのキー,類似度]
-        
-    Returns:
-    ----
-    return_comment_list : list[json]
-      コメントの配列
+  ng_comment_dict : dict
+    get_ng_chat_id(dict, dict, float)の戻り値
+    key : string
+      コメントID。comment_dictと同値。
+    value : list
+      [ng_patternのキー,類似度]
+      
+  Returns:
+  ----
+  return_comment_list : list[json]
+    コメントの配列
+  ng_channel : list[string]
+    NGユーザのチャンネル
+  ng_comments : list[json]
+    NGコメント一覧
+  """
     
-    """
-    
-    return_comment_list = []
+  return_comment_list = []
+  ng_channels = []
+  ng_comments = []
 
-    for key in comment_dict:
-        comment_info = comment_dict[key]
-        if key in ng_comment_dict:
-            comment_info[NG_FLG_KEY] = True
-            comment_info[NG_INFO_KEY] = ng_comment_dict[key]
-        else:
-            comment_info[NG_FLG_KEY] = False
+  for key in comment_dict:
+    comment_info = comment_dict[key]
+    if key in ng_comment_dict:
+      comment_info[NG_FLG_KEY] = True
+      comment_info[NG_INFO_KEY] = ng_comment_dict[key]
+      
+      # TODO : もうちょっとなんとかならんか
+      ID = NGCommentKeyEnum.ID.get_ng_key()
+      CHANNEL_ID = NGCommentKeyEnum.CHANNEL_ID.get_ng_key()
+      DISPLAY_NAME = NGCommentKeyEnum.DISPLAY_NAME.get_ng_key()
+      DISPLAY_MESSAGE = NGCommentKeyEnum.DISPLAY_MESSAGE.get_ng_key()
 
-        return_comment_list.append(comment_info)
-    return return_comment_list
+      ID_ORIGIN = NGCommentKeyEnum.ID.get_origin_key()
+      CHANNEL_ID_ORIGIN = NGCommentKeyEnum.CHANNEL_ID.get_origin_key()
+      DISPLAY_NAME_ORIGIN = NGCommentKeyEnum.DISPLAY_NAME.get_origin_key()
+      DISPLAY_MESSAGE_ORIGIN = NGCommentKeyEnum.DISPLAY_MESSAGE.get_origin_key()
+      ng_comments.append({
+        ID :              comment_info[ID_ORIGIN[0]],
+        CHANNEL_ID :      comment_info[CHANNEL_ID[0]][CHANNEL_ID[1]],
+        DISPLAY_NAME :    comment_info[DISPLAY_NAME_ORIGIN[0]][DISPLAY_NAME_ORIGIN[1]],
+        DISPLAY_MESSAGE : comment_info[DISPLAY_MESSAGE_ORIGIN[0]][DISPLAY_MESSAGE_ORIGIN[1]]
+      })
+      
+      ng_channel = comment_dict[key]['authorDetails']['channelUrl']
+      if ng_channel not in ng_channels:
+        ng_channels.append(ng_channel)
+    else:
+      comment_info[NG_FLG_KEY] = False
+
+    return_comment_list.append(comment_info)
+  return return_comment_list, ng_channels, ng_comments
 
 if __name__ == '__main__':
-
-
   # NGパターンの読み込み
   ng_pattern = get_ng_patterns()
   logger.info("ng_pattern len : {} ".format(len(ng_pattern)))
@@ -256,13 +280,24 @@ if __name__ == '__main__':
   logger.info("ng_comments len : {} ".format(len(ng_comments)))
   
   # 元のコメントjsonにNGフラグを設定
-  comments_ng_merged = merge_ng_comments(live_comment_dict, ng_comments)
+  # NGユーザのチャンネル一覧を取得
+  # NGコメントのみを取得
+  comments_ng_merged, ng_channels, ng_comments = merge_ng_comments(live_comment_dict, ng_comments)
   logger.info("comments_ng_merged len : {} ".format(len(comments_ng_merged)))
+  logger.info("ng_channels len : {} ".format(len(ng_channels)))
+  logger.info("ng_comments len : {} ".format(len(ng_comments)))
   
   # NGフラグを設定したコメントのjsonを出力
-  # 結果をファイルに出力
-  with open(OUTPUT_DIR + 'result_' + VIDEO_ID + '.json' , mode='w') as f:
+  with open(OUTPUT_DIR_ALL + 'result_' + VIDEO_ID + '.json' , mode='w') as f:
     f.write(json.dumps(comments_ng_merged))
   
   # NGに設定したユーザのチャンネルURLを出力
+  with open(OUTPUT_DIR_NG_CHANNEL + 'result_' + VIDEO_ID + '.txt' , mode='w') as f:
+    if len(ng_channels) != 0:
+      f.write(ng_channels)
+    else:
+      pass
   
+  # NGに設定したコメントのみを出力
+  with open(OUTPUT_DIR_NG_MESSAGES + 'result_' + VIDEO_ID + '.json' , mode='w') as f:
+    f.write(json.dumps(ng_comments))
