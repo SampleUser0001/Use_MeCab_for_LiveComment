@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import glob
+from logging import getLogger, config, StreamHandler, DEBUG
 import settings
 import json
 import MeCab
@@ -9,6 +10,17 @@ from difflib import SequenceMatcher
 import sys
 sys.path.append('./')
 from commentutil import CommentEnum 
+from util import LogUtil
+
+logger = getLogger(__name__)
+log_conf = LogUtil.get_log_conf('./log_config.json')
+config.dictConfig(log_conf)
+handler = StreamHandler()
+handler.setLevel(DEBUG)
+logger.setLevel(DEBUG)
+logger.addHandler(handler)
+logger.propagate = False
+
 
 NG_PATTERN_DIR = './input/ng_pattern/**'
 
@@ -120,9 +132,16 @@ def morphological_analysis(live_comments):
       commentEnum = CommentEnum.value_of(type)
       commentKeys = commentEnum.get_keys();
       tmp = live_comments[key][SNIPPET]
+      logger.info("comment_id:{} , type:{}".format(key, type))
+
       for commentKey in commentKeys:
         # コメントを取得する
-        tmp = tmp[commentKey]
+        if commentKey in tmp:
+          tmp = tmp[commentKey]
+        else:
+          # superChatはコメントなしでも打てる。コメントなしで打った場合はjsonにキーが出力されない。
+          tmp = ''
+          break
       # 形態素解析結果取得
       morphological_analysis_result[key] = mplg(tmp)
     except ValueError:
@@ -160,12 +179,14 @@ def get_ng_chat_id(mplg_results, ng_pattern, threshold):
       [ng_patternのキー,類似度]
   
   """
+  logger.info("threshold: {}".format(threshold))
   ng_comments = {}
   for comment_key in mplg_results:
     mplg_result = mplg_results[comment_key]
     for ng_key in ng_pattern:
       similarity = SequenceMatcher(
         None,mplg_result,ng_pattern[ng_key]).ratio()
+      logger.info("comment_id:{} , ng_key:{} , similarity:{}".format(comment_key, ng_key, similarity))
       if similarity > threshold:
         ng_comments[comment_key] = {
           NG_RESULT_KEYS[INDEX_NG_RESULT_PATTERN]: ng_key,
@@ -219,24 +240,24 @@ if __name__ == '__main__':
 
   # NGパターンの読み込み
   ng_pattern = get_ng_patterns()
-  print("ng_pattern len : {} ".format(len(ng_pattern)))
+  logger.info("ng_pattern len : {} ".format(len(ng_pattern)))
 
   # 指定されたVIDEO_IDのコメントファイル読み込み
-  print('VIDEO_ID : {}'.format(VIDEO_ID))
+  logger.info('VIDEO_ID : {}'.format(VIDEO_ID))
   live_comment_dict = get_live_comments(VIDEO_ID)
-  print("live_comment_dict len : {} ".format(len(live_comment_dict)))
+  logger.info("live_comment_dict len : {} ".format(len(live_comment_dict)))
 
   # コメントの形態素解析
   morphological_analysis_result_dict = morphological_analysis(live_comment_dict)
-  print("morphological_analysis_result_dict len : {} ".format(len(morphological_analysis_result_dict)))
+  logger.info("morphological_analysis_result_dict len : {} ".format(len(morphological_analysis_result_dict)))
   
   # 形態素解析したコメントとNGパターンの突合
   ng_comments = get_ng_chat_id(morphological_analysis_result_dict, ng_pattern, SIMILARITY_THRESHOLD)
-  print("ng_comments len : {} ".format(len(ng_comments)))
+  logger.info("ng_comments len : {} ".format(len(ng_comments)))
   
   # 元のコメントjsonにNGフラグを設定
   comments_ng_merged = merge_ng_comments(live_comment_dict, ng_comments)
-  print("comments_ng_merged len : {} ".format(len(comments_ng_merged)))
+  logger.info("comments_ng_merged len : {} ".format(len(comments_ng_merged)))
   
   # NGフラグを設定したコメントのjsonを出力
   # 結果をファイルに出力
