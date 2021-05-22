@@ -40,6 +40,11 @@ class CommentTypeEnum(Enum):
     "superStickerEvent",
     ["superStickerDetails","superStickerMetadata", "superStickerMetadata"]
   )
+  
+  newSponsorEvent = (
+    "newSponsorEvent",
+    []
+  )
 
   def __init__(self, type, keys):
     self.type = type
@@ -57,5 +62,56 @@ class CommentTypeEnum(Enum):
     for e in CommentTypeEnum:
       if e.get_type() == target_value:
         return e
-    raise ValueError('{} is not found.'.format(target_value))
+    raise ValueError("{} is not found.".format(target_value))
     
+  @classmethod
+  def get_comment(cls, comment_dict):
+    """
+    コメントdictからメッセージを取得する。
+    
+    Parameters:
+    ----
+    comment_dict : dict
+      コメント情報
+    
+    Returns:
+    ----
+    comment : str
+      コメント
+    """
+    # ['snippet']['type']はチャットの種類(superChatEvent, superStickerEvent, textMessageEvent)を持っている。
+    type = str(comment_dict['snippet']['type'])
+    commentTypeEnum = CommentTypeEnum.value_of(type)
+    commentKeys = commentTypeEnum.get_keys();
+    tmp = comment_dict['snippet']
+
+    if commentTypeEnum == CommentTypeEnum.newSponsorEvent:
+      # メンバーシップ加入コメントは何も出力されない。
+      return ''
+    else:
+      for commentKey in commentKeys:
+        # コメントを取得する
+        if commentKey in tmp:
+          tmp = tmp[commentKey]
+        else:
+          # superChatはコメントなしでも打てる。コメントなしで打った場合はjsonにキーが出力されない。
+          tmp = ' '
+          break
+      return tmp
+
+# TODO YoutubeCommentJsonへのアクセスをしやすくする。
+# class CommonCommentKeyEnum(Enum):
+#   kind=(["kind"])
+#   etag=(["etag"])
+#   id=(["id"])
+#   snippet=(["snippet"])
+#   type=(["snippet","type"])
+#   liveChatId=(["snippet","liveChatId"])
+#   authorChannelId=(["snippet","authorChannelId"])
+#   publishedAt=(["snippet","publishedAt"])
+#   hasDisplayContent=(["snippet","hasDisplayContent"])
+#   displayMessage=(["snippet"])
+#   
+#   def __init__(self, keys):
+#     self.keys = keys
+

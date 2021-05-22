@@ -16,7 +16,7 @@
     },
     "fileHandler": {
       "class": "logging.FileHandler",
-      "level": "INFO",
+      "level": "DEBUG",
       "formatter": "simple",
       "filename": "./log/app.log"
     }

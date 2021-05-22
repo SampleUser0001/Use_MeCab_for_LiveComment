@@ -135,4 +135,3 @@ dmypy.json
 /app/input/comment/*/comments_*.json
 /app/input/ng_pattern/*
 /app/output/*
-
