@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# cloud9
+*~c9*
+
+# App
+/app/input/comment/*/comments_*.json
+/app/input/ng_pattern/*
+/app/output/*
