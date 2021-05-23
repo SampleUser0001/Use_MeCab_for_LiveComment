@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 
 import sys
 sys.path.append('./')
-from commentutil import NGCommentKeyEnum, CommentTypeEnum 
+from commentutil import OutputCommentKeyEnum, CommentTypeEnum 
 from util import LogUtil
 
 logger = getLogger(__name__)
@@ -44,6 +44,7 @@ NG_INFO_KEY = 'ng_info'
 
 OUTPUT_DIR_ALL = './output/all/'
 OUTPUT_DIR_NG_CHANNEL = './output/ng_channel/'
+OUTPUT_DIR_OK_MESSAGES = './output/ok_message/'
 OUTPUT_DIR_NG_MESSAGES = './output/ng_message/'
 
 def get_ng_patterns():
@@ -118,7 +119,8 @@ def get_ng_channel():
     with open(file, mode='r') as f:
       for ng_channel in f.read().splitlines():
         # logger.debug("ng_channel: {}".format(ng_channel))
-        ng_channels.append(ng_channel)
+        if ng_channel not in ng_channels:
+          ng_channels.append(ng_channel)
   return ng_channels
   
 def morphological_analysis(live_comments):
@@ -233,6 +235,7 @@ def get_ng(live_comments, mplg_results, ng_patterns, threshold, ng_channels):
     # チャンネルURLから判断
     channel_url = live_comments[comment_key]['authorDetails']['channelUrl']
     if channel_url in ng_channels:
+      logger.debug("comment_id:{}, ng_channel:{}".format(comment_key, channel_url))
       ng = True
       ng_pattern.append('channel')
 
@@ -282,42 +285,48 @@ def merge_ng_comments(comments, ng_comments):
       } 
       ng_pattern (必須) : 配列。どのパターンで引っかかったか。 ["comment","channel"]
     }
+  ok_only_comments : list[dict]
+    OKコメント一覧
   ng_only_comments : list[dict]
     NGコメント一覧
   """
 
   return_comment_list = []
   ng_only_comments = []
+  ok_only_comments = []
 
   for comment_id in comments:
     comment_info = comments[comment_id]
+
+    # TODO : もうちょっとなんとかならんか
+    ID = OutputCommentKeyEnum.ID.get_ng_key()
+    CHANNEL_ID = OutputCommentKeyEnum.CHANNEL_ID.get_ng_key()
+    DISPLAY_NAME = OutputCommentKeyEnum.DISPLAY_NAME.get_ng_key()
+    DISPLAY_MESSAGE = OutputCommentKeyEnum.DISPLAY_MESSAGE.get_ng_key()
+
+    ID_ORIGIN = OutputCommentKeyEnum.ID.get_origin_key()
+    CHANNEL_ID_ORIGIN = OutputCommentKeyEnum.CHANNEL_ID.get_origin_key()
+    DISPLAY_NAME_ORIGIN = OutputCommentKeyEnum.DISPLAY_NAME.get_origin_key()
+    DISPLAY_MESSAGE_ORIGIN = OutputCommentKeyEnum.DISPLAY_MESSAGE.get_origin_key()
+
+    # ng_only_commentsかok_only_commentsに追加する用の変数。
+    tmp_comment = {
+      ID :              comment_info[ID_ORIGIN[0]],
+      CHANNEL_ID :      comment_info[CHANNEL_ID_ORIGIN[0]][CHANNEL_ID_ORIGIN[1]],
+      DISPLAY_NAME :    comment_info[DISPLAY_NAME_ORIGIN[0]][DISPLAY_NAME_ORIGIN[1]],
+      DISPLAY_MESSAGE : comment_info[DISPLAY_MESSAGE_ORIGIN[0]][DISPLAY_MESSAGE_ORIGIN[1]]
+    }
     if comment_id in ng_comments:
       comment_info[NG_FLG_KEY] = True
       comment_info[NG_INFO_KEY] = ng_comments[comment_id]
-      
-      # TODO : もうちょっとなんとかならんか
-      ID = NGCommentKeyEnum.ID.get_ng_key()
-      CHANNEL_ID = NGCommentKeyEnum.CHANNEL_ID.get_ng_key()
-      DISPLAY_NAME = NGCommentKeyEnum.DISPLAY_NAME.get_ng_key()
-      DISPLAY_MESSAGE = NGCommentKeyEnum.DISPLAY_MESSAGE.get_ng_key()
-
-      ID_ORIGIN = NGCommentKeyEnum.ID.get_origin_key()
-      CHANNEL_ID_ORIGIN = NGCommentKeyEnum.CHANNEL_ID.get_origin_key()
-      DISPLAY_NAME_ORIGIN = NGCommentKeyEnum.DISPLAY_NAME.get_origin_key()
-      DISPLAY_MESSAGE_ORIGIN = NGCommentKeyEnum.DISPLAY_MESSAGE.get_origin_key()
-
-      ng_only_comments.append({
-        ID :              comment_info[ID_ORIGIN[0]],
-        CHANNEL_ID :      comment_info[CHANNEL_ID_ORIGIN[0]][CHANNEL_ID_ORIGIN[1]],
-        DISPLAY_NAME :    comment_info[DISPLAY_NAME_ORIGIN[0]][DISPLAY_NAME_ORIGIN[1]],
-        DISPLAY_MESSAGE : comment_info[DISPLAY_MESSAGE_ORIGIN[0]][DISPLAY_MESSAGE_ORIGIN[1]]
-      })
+      ng_only_comments.append(tmp_comment)
       
     else:
       comment_info[NG_FLG_KEY] = False
+      ok_only_comments.append(tmp_comment)
 
     return_comment_list.append(comment_info)
-  return return_comment_list, ng_only_comments
+  return return_comment_list, ok_only_comments, ng_only_comments
 
 if __name__ == '__main__':
   # NGパターンの読み込み
@@ -363,8 +372,9 @@ if __name__ == '__main__':
   
   # 元のコメントjsonにNGフラグを設定
   # NGコメントのみを取得
-  ng_merged_comments, ng_only_comments = merge_ng_comments(input_live_comments, result_ng_comments)
+  ng_merged_comments, ok_only_comments, ng_only_comments = merge_ng_comments(input_live_comments, result_ng_comments)
   logger.info("ng_merged_comments len : {} ".format(len(ng_merged_comments)))
+  logger.info("ok_only_comments len : {} ".format(len(ok_only_comments)))
   logger.info("ng_only_comments len : {} ".format(len(ng_only_comments)))
   
   # NGフラグを設定したコメントのjsonを出力
@@ -375,6 +385,10 @@ if __name__ == '__main__':
   with open(OUTPUT_DIR_NG_CHANNEL + 'result_' + VIDEO_ID + '.txt' , mode='w') as f:
     for ng_channel in result_ng_channels:
       f.write(ng_channel+'\n')
+
+  # OKに設定したコメントのみを出力
+  with open(OUTPUT_DIR_OK_MESSAGES + 'result_' + VIDEO_ID + '.json' , mode='w') as f:
+    f.write(json.dumps(ok_only_comments))
   
   # NGに設定したコメントのみを出力
   with open(OUTPUT_DIR_NG_MESSAGES + 'result_' + VIDEO_ID + '.json' , mode='w') as f:

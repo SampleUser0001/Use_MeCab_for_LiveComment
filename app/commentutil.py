@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from enum import Enum
 
-class NGCommentKeyEnum(Enum):
+class OutputCommentKeyEnum(Enum):
   ID = ('id', ['id'])
   CHANNEL_ID = ('channelId', ['authorDetails', 'channelId'])
   DISPLAY_NAME = ('displayName', ['authorDetails', 'displayName'])
@@ -20,7 +20,7 @@ class NGCommentKeyEnum(Enum):
 
   @classmethod
   def value_of(cls, ng_key):
-    for e in NGCommentKeyEnum:
+    for e in OutputCommentKeyEnum:
       if e.get_origin_message_key() == ng_key:
         return e
     raise ValueError('{} is not found.'.format(ng_key))
