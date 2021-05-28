@@ -31,27 +31,27 @@ GoogleAPIで取得したYoutubeLiveコメントをOK/NGに振り分ける。
 #### ng_channel
 
 - ファイル名
-  - .gitkeep以外の任意の名前。
+    - .gitkeep以外の任意の名前。
 - ファイル内容
-  - ```http://www.youtube.com/channel/${チャンネルID}```のフォーマットで記載する。
+    - ```http://www.youtube.com/channel/${チャンネルID}```のフォーマットで記載する。
 
 #### ng_pattern
 
 - MeCabで分析したファイルを配置する。
-  - ここに配置したファイルとコメントファイルの形態素解析結果を比較し、一定以上の類似度の場合NGと判断する。
+    - ここに配置したファイルとコメントファイルの形態素解析結果を比較し、一定以上の類似度の場合NGと判断する。
 
 #### ng_comments
 
 - 未実装。
 - 通常のコメントを配置する。
-  - 完全一致ではなく類似度から判断する。
+    - 完全一致ではなく類似度から判断する。
 
 ### 実行方法
 
 1. 入力ファイル配置
-  1. sample.envをコピーし、.envを作成する。
-    1. video_idを指定する。
-  2. app/input/comment配下にGoogleAPIを使用して取得したコメントjsonファイルを配置する。
-  3. app/ng_channel配下にNG判定したいチャンネルURL一覧のファイルを配置する。
-  4. app/ng_pattern配下にNG判定に使用したいの形態素解析結果のファイルを配置する。
+    1. sample.envをコピーし、.envを作成する。
+        1. video_idを指定する。
+    2. app/input/comment配下にGoogleAPIを使用して取得したコメントjsonファイルを配置する。
+    3. app/ng_channel配下にNG判定したいチャンネルURL一覧のファイルを配置する。
+    4. app/ng_pattern配下にNG判定に使用したいの形態素解析結果のファイルを配置する。
 2. ```docker-compose up```を実行する。
