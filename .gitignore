@@ -134,4 +134,9 @@ dmypy.json
 # App
 /app/input/comment/*/comments_*.json
 /app/input/ng_pattern/*
-/app/output/*
+/app/input/ng_channel/*
+/app/input/ng_comment/*
+/app/output/all/*
+/app/output/ng_channel/*
+/app/output/ng_message/*
+/app/output/ok_message/*

@@ -48,7 +48,7 @@ if __name__ == '__main__':
   judgement.exec()
 
   # NGフラグを設定したコメントのjsonを出力
-  with open(OUTPUT_DIR_ALL + 'result_' + VIDEO_ID + '.json' , mode='w') as f:
+  with open(OUTPUT_DIR_ALL + 'result_' + VIDEO_ID + '.json', encoding='utf-8' , mode='w') as f:
    f.write(json.dumps(judgement.get_result_all_comments()))
   
   # NGに設定したユーザのチャンネルURLを出力
@@ -57,11 +57,11 @@ if __name__ == '__main__':
       f.write(ng_channel+'\n')
 
   # OKに設定したコメントのみを出力
-  with open(OUTPUT_DIR_OK_MESSAGES + 'result_' + VIDEO_ID + '.json' , mode='w') as f:
+  with open(OUTPUT_DIR_OK_MESSAGES + 'result_' + VIDEO_ID + '.json', encoding='utf-8' , mode='w') as f:
     f.write(json.dumps(judgement.get_result_ok_comments()))
   
   # NGに設定したコメントのみを出力
-  with open(OUTPUT_DIR_NG_MESSAGES + 'result_' + VIDEO_ID + '.json' , mode='w') as f:
+  with open(OUTPUT_DIR_NG_MESSAGES + 'result_' + VIDEO_ID + '.json', encoding='utf-8' , mode='w') as f:
     f.write(json.dumps(judgement.get_result_ng_comments()))
 
   logger.info("finish.")
