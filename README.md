@@ -50,6 +50,8 @@ GoogleAPIで取得したYoutubeLiveコメントをOK/NGに振り分ける。
 1. 入力ファイル配置
     1. sample.envをコピーし、.envを作成する。
         1. video_idを指定する。
+        2. USE_MPLGを指定する。
+            - 形態素解析を使用するかどうかの値。trueで使用する。
     2. app/input/comment配下にGoogleAPIを使用して取得したコメントjsonファイルを配置する。
     3. app/ng_channel配下にNG判定したいチャンネルURL一覧のファイルを配置する。
     4. app/ng_pattern配下にNG判定に使用したいの形態素解析結果のファイルを配置する。
