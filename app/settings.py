@@ -9,7 +9,7 @@ dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 ENV_DIC = {}
-ENV_KEYS = ['video_id','mplg']
+ENV_KEYS = ['video_id','mplg','similarity_threshold']
 
 for key in ENV_KEYS:
   ENV_DIC[key] = os.environ.get(key)
