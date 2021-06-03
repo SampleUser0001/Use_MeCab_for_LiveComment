@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 from enum import Enum
 
+class AddNGInfoKeyEnum(Enum):
+  """ 取り込んだコメントにNG情報を追加する際のキーを保持する。"""
+  NG_FLG_KEY = 'ng_flg'
+  NG_INFO_KEY = 'ng_info'
+
 class OutputCommentKeyEnum(Enum):
   ID = ('id', ['id'])
   CHANNEL_ID = ('channelId', ['authorDetails', 'channelId'])
