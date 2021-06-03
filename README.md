@@ -10,19 +10,20 @@ GoogleAPIで取得したYoutubeLiveコメントをOK/NGに振り分ける。
 .
 └── app
     ├── input                     # 入力ファイル一覧
-    │   ├── comment               # 動画ごとのコメントファイルを配置する。
-    │   │   ├── ${動画ID}
-    │   │   ├── ...
-    │   │   └── ${動画ID}
-    │   ├── ng_channel            # NGチャンネル一覧のファイルを配置する。
-    │   └── ng_pattern            # NG判定する形態素解析結果を配置する。
-    │       └── pmTQqhpHAHs
+    │   ├── comment               # 動画ごとのコメントファイルを配置する。
+    │   │   ├── ${動画ID}
+    │   │   ├── ...
+    │   │   └── ${動画ID}
+    │   ├── ng_channel            # NGチャンネル一覧のファイルを配置する。
+    │   ├── ng_comment            # NG判定するコメントを配置する。
+    │   └── ng_pattern            # NG判定する形態素解析結果を配置する。
+    │       └── pmTQqhpHAHs
     ├── log
     ├── output                    # 実行結果が出力される
-    │   ├── all                   # 元のコメントファイルにOK/NGを付与したjsonを出力
-    │   ├── ng_channel            # NG判定したチャンネル一覧を出力する。
-    │   ├── ng_message            # NG判定したコメントを出力する。
-    │   └── ok_message            # OK判定したコメントを出力する。
+    │   ├── all                   # 元のコメントファイルにOK/NGを付与したjsonを出力
+    │   ├── ng_channel            # NG判定したチャンネル一覧を出力する。
+    │   ├── ng_message            # NG判定したコメントを出力する。
+    │   └── ok_message            # OK判定したコメントを出力する。
     └── __pycache__
 ```
 
