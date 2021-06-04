@@ -26,7 +26,7 @@ VIDEO_ID = settings.ENV_DIC['video_id']
 USE_MPLG = settings.ENV_DIC['mplg']
 
 # 類似度閾値
-SIMILARITY_THRESHOLD = settings.ENV_DIC['similarity_threshold']
+SIMILARITY_THRESHOLD = float(settings.ENV_DIC['similarity_threshold'])
 
 OUTPUT_DIR_ALL = './output/all/'
 OUTPUT_DIR_NG_CHANNEL = './output/ng_channel/'
