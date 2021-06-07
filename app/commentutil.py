@@ -74,7 +74,7 @@ class CommentTypeEnum(Enum):
     # ['snippet']['type']はチャットの種類(superChatEvent, superStickerEvent, textMessageEvent)を持っている。
     type = str(comment_dict['snippet']['type'])
     for e in CommentTypeEnum:
-      if e.get_type() == CommentTypeEnum.target_value(type):
+      if e.get_type() == CommentTypeEnum.__value_of_type(type).get_type():
         return e
     raise ValueError("{} is not found.".format(type))
 

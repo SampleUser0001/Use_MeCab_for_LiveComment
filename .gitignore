@@ -139,5 +139,7 @@ dmypy.json
 /app/output/all/*.json
 /app/output/ng_channel/result_*.txt
 /app/output/ng_message/*.json
+/app/output/ng_message/*tmp*
 /app/output/ok_message/*.json
+/app/output/warn_message/*.json
 /app/log/*.log

@@ -35,12 +35,14 @@ OUTPUT_DIR_ALL = './output/all/'
 OUTPUT_DIR_NG_CHANNEL = './output/ng_channel/'
 OUTPUT_DIR_OK_MESSAGES = './output/ok_message/'
 OUTPUT_DIR_NG_MESSAGES = './output/ng_message/'
+OUTPUT_DIR_WARN_MESSAGES = './output/warn_message/'
 
 if __name__ == '__main__':
   logger.info("start.")
   # 設定値のログ出力
   logger.info("video_id : {}".format(VIDEO_ID))
   logger.info("USE_MPLG : {}".format(USE_MPLG))
+  logger.info("COMMENT_LEN_WARN : {}".format(COMMENT_LEN_WARN))
 
   if USE_MPLG:
     judgement = UseMPLGJudegement(VIDEO_ID, SIMILARITY_THRESHOLD, COMMENT_LEN_WARN)
@@ -66,6 +68,8 @@ if __name__ == '__main__':
   # NGに設定したコメントのみを出力
   with open(OUTPUT_DIR_NG_MESSAGES + 'result_' + VIDEO_ID + '.json', encoding='utf-8' , mode='w') as f:
     f.write(json.dumps(judgement.get_result_ng_comments()))
+
+  # WARNに設定したコメント
 
   logger.info("finish.")
   # logger.debug(json.dumps(result_ng_channels))
