@@ -28,6 +28,9 @@ USE_MPLG = settings.ENV_DIC['mplg']
 # 類似度閾値
 SIMILARITY_THRESHOLD = float(settings.ENV_DIC['similarity_threshold'])
 
+# コメント長しきい値
+COMMENT_LEN_WARN = int(settings.ENV_DIC['comment_len_warn'])
+
 OUTPUT_DIR_ALL = './output/all/'
 OUTPUT_DIR_NG_CHANNEL = './output/ng_channel/'
 OUTPUT_DIR_OK_MESSAGES = './output/ok_message/'
@@ -40,9 +43,9 @@ if __name__ == '__main__':
   logger.info("USE_MPLG : {}".format(USE_MPLG))
 
   if USE_MPLG:
-    judgement = UseMPLGJudegement(VIDEO_ID, SIMILARITY_THRESHOLD)
+    judgement = UseMPLGJudegement(VIDEO_ID, SIMILARITY_THRESHOLD, COMMENT_LEN_WARN)
   else:
-    judgement = NotUseMPLGJudgement(VIDEO_ID, SIMILARITY_THRESHOLD)
+    judgement = NotUseMPLGJudgement(VIDEO_ID, SIMILARITY_THRESHOLD, COMMENT_LEN_WARN)
 
   # 判定実行
   judgement.exec()

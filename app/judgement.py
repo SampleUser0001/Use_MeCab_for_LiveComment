@@ -22,9 +22,10 @@ logger.addHandler(handler)
 logger.propagate = False
 
 # NGパターンとの突合結果
-NG_RESULT_KEYS = ["pattern","similarity"]
+NG_RESULT_KEYS = ["pattern","similarity","comment_len"]
 INDEX_NG_RESULT_PATTERN = 0
 INDEX_NG_RESULT_SIMILARITY = 1
+INDEX_NG_RESULT_COMMENT_LEN = 2
 
 class JudgementInterface():
   """
@@ -37,12 +38,14 @@ class JudgementInterface():
     self, \
     video_id, \
     ng_pattern_path, \
-    threshold):
+    threshold, \
+    comment_len_warn):
     """ コンストラクタ
     """
     self.video_id = video_id
     self.ng_pattern_path = ng_pattern_path
     self.threshold = threshold
+    self.comment_len_warn = comment_len_warn
 
     self.result_all_comments = None
     self.result_ok_comments = None
@@ -60,7 +63,8 @@ class JudgementInterface():
         pickup_comments, \
         ng_patterns, \
         ng_channels, \
-        self.threshold)
+        self.threshold, \
+        self.comment_len_warn)
 
     self.result_all_comments , self.result_ok_comments , self.result_ng_comments = \
       self.merge_ng_comments(live_comments, judged_ng_comments)
@@ -163,7 +167,7 @@ class JudgementInterface():
   
     return morphological_analysis_result
     
-  def judgement(self, comments, pickup_comments, ng_patterns, ng_channels ,threshold):
+  def judgement(self, comments, pickup_comments, ng_patterns, ng_channels ,threshold, comment_len_warn):
     """ NG判定を行う。
     
     Paramters:
@@ -171,9 +175,9 @@ class JudgementInterface():
     comments : dict
       インポートしたコメント。
       JudgementInterface.import_live_comments関数の戻り値。
-    mplg_dict : dict
-      コメントの形態素解析結果。
-      形態素解析を使わない場合は不要。
+    pickup_comments : dict
+      key : commentsのキーと同値
+      value : コメントの形態素解析結果 or コメント本体 (どちらを保持しているかは実装クラス次第)
     ng_patterns : dict or list
       NGパターン。
       形態素解析を使う場合はdict。
@@ -183,7 +187,9 @@ class JudgementInterface():
     threshold : float
       類似度のしきい値。
       NGパターンと比較して、類似度がこの値以上の場合、NGと判断する。
-      
+    comment_len_warn : int
+      コメント長のしきい値。
+      コメント長がこの値以上の場合、NGフラグを立てる
     Returns:
     ----
     ng_comments : dict型。NG判定されたコメントを返す。
@@ -220,7 +226,14 @@ class JudgementInterface():
         ng = True
         judgement_pattern.append('channel')
   
-      # どちらかのチェックで引っかかった場合はコメントIDをキーに登録
+      # コメント長から判断。通常コメントのみ。
+      if CommentTypeEnum.value_of(comments[key]) == CommentTypeEnum.textMessageEvent:
+        origin_comment = CommentTypeEnum.get_comment(comments[key])
+        if len(origin_comment) >= comment_len_warn:
+          ng = True
+          judgement_pattern.append('comment_len')
+
+      # どのチェックで引っかかったかはコメントIDをキーに登録
       if ng:
         ng_comment['ng_channel'] = channel_url
         return_ng_comments[key] = ng_comment
@@ -339,8 +352,8 @@ class NotUseMPLGJudgement(JudgementInterface):
   # NGコメント一覧のファイルが配置してあるパス
   NG_COMMENT_DIR = './input/ng_comment/**'
 
-  def __init__(self, video_id, threshold):
-    super().__init__(video_id, NotUseMPLGJudgement.NG_COMMENT_DIR, threshold)
+  def __init__(self, video_id, threshold, comment_len_warn):
+    super().__init__(video_id, NotUseMPLGJudgement.NG_COMMENT_DIR, threshold, comment_len_warn)
 
   def import_ng_pattern(self, path):
     """ NGパターンの読み込み
@@ -384,8 +397,8 @@ class UseMPLGJudegement(JudgementInterface):
   # NGパターンの形態素解析結果を配置しているファイルパス
   NG_PATTERN_DIR = './input/ng_pattern/**'
 
-  def __init__(self, video_id, threshold):
-    super().__init__(video_id, UseMPLGJudegement.NG_PATTERN_DIR, threshold)
+  def __init__(self, video_id, threshold, comment_len_warn):
+    super().__init__(video_id, UseMPLGJudegement.NG_PATTERN_DIR, threshold, comment_len_warn)
 
   def import_ng_pattern(self, path):
     """

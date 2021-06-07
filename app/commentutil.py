@@ -63,12 +63,22 @@ class CommentTypeEnum(Enum):
     return self.keys;
 
   @classmethod
-  def value_of(cls, target_value):
+  def __value_of_type(cls, target_value):
     for e in CommentTypeEnum:
       if e.get_type() == target_value:
         return e
     raise ValueError("{} is not found.".format(target_value))
-    
+
+  @classmethod
+  def value_of(cls, comment_dict):
+    # ['snippet']['type']はチャットの種類(superChatEvent, superStickerEvent, textMessageEvent)を持っている。
+    type = str(comment_dict['snippet']['type'])
+    for e in CommentTypeEnum:
+      if e.get_type() == CommentTypeEnum.target_value(type):
+        return e
+    raise ValueError("{} is not found.".format(type))
+
+
   @classmethod
   def get_comment(cls, comment_dict):
     """
@@ -84,9 +94,7 @@ class CommentTypeEnum(Enum):
     comment : str
       コメント
     """
-    # ['snippet']['type']はチャットの種類(superChatEvent, superStickerEvent, textMessageEvent)を持っている。
-    type = str(comment_dict['snippet']['type'])
-    commentTypeEnum = CommentTypeEnum.value_of(type)
+    commentTypeEnum = CommentTypeEnum.value_of(comment_dict)
     commentKeys = commentTypeEnum.get_keys();
     tmp = comment_dict['snippet']
 
@@ -100,7 +108,7 @@ class CommentTypeEnum(Enum):
           tmp = tmp[commentKey]
         else:
           # superChatはコメントなしでも打てる。コメントなしで打った場合はjsonにキーが出力されない。
-          tmp = ' '
+          tmp = ''
           break
       return tmp
 
