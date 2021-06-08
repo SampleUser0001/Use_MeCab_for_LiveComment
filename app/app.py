@@ -23,7 +23,7 @@ logger.propagate = False
 VIDEO_ID = settings.ENV_DIC['video_id']
 
 # 形態素解析を使用するかどうか。
-USE_MPLG = settings.ENV_DIC['mplg']
+USE_MPLG = bool(int(settings.ENV_DIC['mplg']))
 
 # 類似度閾値
 SIMILARITY_THRESHOLD = float(settings.ENV_DIC['similarity_threshold'])
@@ -43,6 +43,8 @@ if __name__ == '__main__':
     judgement = UseMPLGJudegement(VIDEO_ID, SIMILARITY_THRESHOLD)
   else:
     judgement = NotUseMPLGJudgement(VIDEO_ID, SIMILARITY_THRESHOLD)
+
+  logger.info("instance type : {}".format(type(judgement)))
 
   # 判定実行
   judgement.exec()
