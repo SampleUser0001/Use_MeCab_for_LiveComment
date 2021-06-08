@@ -55,20 +55,30 @@ class JudgementInterface():
 
   def exec(self):
     live_comments = self.import_live_comments(self.video_id)
+    logger.info("live_comments len : {}".format(len(live_comments)))
+
     ng_channels = self.import_ng_channel()
+    logger.info("ng_channels len : {}".format(len(ng_channels)))
+
     ng_patterns = self.import_ng_pattern(self.ng_pattern_path)
+    logger.info("ng_patterns len : {}".format(len(ng_patterns)))
+
     pickup_comments = self.pickup_comment(live_comments)
-    judged_ng_comments, self.result_ng_channels self.result_warn_comments = \
+    logger.info("pickup_comments len : {}".format(len(pickup_comments)))
+
+    judged_ng_comments, self.result_ng_channels = \
       self.judgement( \
         live_comments,\
         pickup_comments, \
         ng_patterns, \
         ng_channels, \
-        self.threshold, \
-        self.comment_len_warn)
+        self.threshold)
+    logger.info("judged_ng_comments len : {}".format(len(judged_ng_comments)))
+    logger.info("result_ng_channels len : {}".format(len(self.result_ng_channels)))
 
     self.result_all_comments , self.result_ok_comments , self.result_ng_comments = \
       self.merge_ng_comments(live_comments, judged_ng_comments)
+    logger.info("result_ok_comments len : {}".format(len(self.result_ok_comments)))
 
   def get_result_all_comments(self):
     return self.result_all_comments
