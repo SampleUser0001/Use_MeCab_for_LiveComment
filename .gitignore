@@ -138,6 +138,6 @@ dmypy.json
 /app/input/ng_comment/*
 /app/output/all/*.json
 /app/output/ng_channel/result_*.txt
-/app/output/ng_message/*.json
-/app/output/ok_message/*.json
+/app/output/ng_message/*
+/app/output/ok_message/*
 /app/log/*.log
