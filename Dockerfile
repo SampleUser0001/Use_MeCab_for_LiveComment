@@ -32,7 +32,7 @@ RUN ./mecab-ipadic-neologd/bin/install-mecab-ipadic-neologd -n -y
 ENV MECABRC=/usr/local/mecab/etc/mecabrc
 
 RUN python -m pip install --upgrade pip
-RUN pip install mecab-python3 python-dotenv
+RUN pip install mecab-python3 python-dotenv pycld2
 
 WORKDIR /app
 

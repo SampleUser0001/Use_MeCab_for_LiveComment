@@ -6,6 +6,7 @@ import glob
 import MeCab
 import json
 from difflib import SequenceMatcher 
+import pycld2 as cld2
 
 import sys
 sys.path.append('./')
@@ -22,10 +23,9 @@ logger.addHandler(handler)
 logger.propagate = False
 
 # NGパターンとの突合結果
-NG_RESULT_KEYS = ["pattern","similarity","comment_len"]
+NG_RESULT_KEYS = ["pattern","similarity"]
 INDEX_NG_RESULT_PATTERN = 0
 INDEX_NG_RESULT_SIMILARITY = 1
-INDEX_NG_RESULT_COMMENT_LEN = 2
 
 class JudgementInterface():
   """
@@ -34,24 +34,31 @@ class JudgementInterface():
   # NGチャンネル一覧のファイルが配置してあるパス
   NG_CHANNEL_DIR = './input/ng_channel/**'
 
+  # 言語ごとのWARN判定文字列長TSVファイル
+  LANG_LEN_PATH = './input/lang_len.tsv'
+
   def __init__( \
     self, \
     video_id, \
     ng_pattern_path, \
-    threshold, \
-    comment_len_warn):
+    threshold):
     """ コンストラクタ
     """
     self.video_id = video_id
     self.ng_pattern_path = ng_pattern_path
     self.threshold = threshold
-    self.comment_len_warn = comment_len_warn
 
     self.result_all_comments = None
     self.result_ok_comments = None
     self.result_ng_comments = None
     self.result_ng_channels = None
-    self.result_warn_comments = None
+
+    self.LANG_LEN_DIC = {}
+    with open(self.LANG_LEN_PATH, mode='r') as f:
+      for line in f.readlines():
+        lines = line.replace('\r', '').replace('\n', '').split('\t')
+        self.LANG_LEN_DIC[lines[0]] = int(lines[1])
+    logger.info("lang_len: {}".format(self.LANG_LEN_DIC))
 
   def exec(self):
     live_comments = self.import_live_comments(self.video_id)
@@ -77,7 +84,7 @@ class JudgementInterface():
     logger.info("result_ng_channels len : {}".format(len(self.result_ng_channels)))
 
     self.result_all_comments , self.result_ok_comments , self.result_ng_comments = \
-      self.merge_ng_comments(live_comments, judged_ng_comments)
+      self.merge_comments(live_comments, judged_ng_comments)
     logger.info("result_ok_comments len : {}".format(len(self.result_ok_comments)))
 
   def get_result_all_comments(self):
@@ -88,8 +95,6 @@ class JudgementInterface():
     return self.result_ng_comments
   def get_result_ng_channels(self):
     return self.result_ng_channels
-  def get_result_warn_comments(self):
-    return self.result_warn_comments
 
   def import_live_comments(self, video_id):
     """
@@ -180,7 +185,7 @@ class JudgementInterface():
   
     return morphological_analysis_result
     
-  def judgement(self, comments, pickup_comments, ng_patterns, ng_channels ,threshold, comment_len_warn):
+  def judgement(self, comments, pickup_comments, ng_patterns, ng_channels ,threshold):
     """ NG判定を行う。
     
     Paramters:
@@ -200,9 +205,6 @@ class JudgementInterface():
     threshold : float
       類似度のしきい値。
       NGパターンと比較して、類似度がこの値以上の場合、NGと判断する。
-    comment_len_warn : int
-      コメント長のしきい値。
-      コメント長がこの値以上の場合、WARNフラグを立てる。（NGとは別に扱う。）
 
     Returns:
     ----
@@ -218,13 +220,6 @@ class JudgementInterface():
       }
     ng_channels : list
       NG判定したチャンネル一覧
-    warn_comments : dict型。WARN判定されたコメントを返す。
-      key : コメントID
-      value : dict {
-        comment : コメント,
-        channel : チャンネルURL,
-        comment_len : コメント長
-      }
     """
     logger.info("threshold: {}".format(threshold))
     logger.info("ng_channels len: {}".format(len(ng_channels)))
@@ -232,7 +227,6 @@ class JudgementInterface():
     # 戻り値
     return_ng_comments = {}
     return_ng_channels = []
-    return_warn_comments = {}
 
     for key in pickup_comments:
       # コメント取得
@@ -248,14 +242,6 @@ class JudgementInterface():
         ng = True
         judgement_pattern.append('channel')
   
-      # コメント長から判断。通常コメントのみ。
-      warn = False
-      origin_comment = ''
-      if CommentTypeEnum.value_of(comments[key]) == CommentTypeEnum.textMessageEvent:
-        origin_comment = CommentTypeEnum.get_comment(comments[key])
-        if len(origin_comment) >= comment_len_warn:
-          warn = True
-          
       # どのチェックで引っかかったかはコメントIDをキーに登録
       if ng:
         ng_comment['ng_channel'] = channel_url
@@ -263,23 +249,15 @@ class JudgementInterface():
         if channel_url not in return_ng_channels:
           return_ng_channels.append(channel_url)
 
-      if warn:
-        warn_comment = {
-          'comment' : origin_comment,
-          'channel' : channel_url,
-          'comment_len' : len(origin_comment)
-        }
-        return_warn_comments[key] = warn_comment
-
-    return return_ng_comments, return_ng_channels, return_warn_comments
+    return return_ng_comments, return_ng_channels
 
   @abstractmethod
   def judgement_by_pattern(self, comment, ng_patterns, threshold):
     pass
 
-  def merge_comments(self, comments, ng_comments, warn_comments):
+  def merge_comments(self, comments, ng_comments):
     """
-    コメントにOK/NG/WARN情報を付与する。
+    コメントにNG情報を付与する。
     
     Parameters:
     ----
@@ -287,14 +265,12 @@ class JudgementInterface():
       JudgementInterface.import_live_commentsメソッドの戻り値。
     ng_comments : dict
       JudgementInterface.judgementメソッドの戻り値のうち、ng_comments。
-    warn_comments: dict
-      JudgementInterface.judgementメソッドの戻り値のうち、warn_comments。
      
     Returns:
     ----
     return_comment_list : list[dict]
       コメントの配列。元のコメントに下記を追加する。
-      flg : OK / NG / WARN
+      ng_flg : true or false
       ng_info : dict {
         ng_channel (必須) : チャンネルURL
         ng_comment (任意) : {
@@ -385,8 +361,8 @@ class NotUseMPLGJudgement(JudgementInterface):
   # NGコメント一覧のファイルが配置してあるパス
   NG_COMMENT_DIR = './input/ng_comment/**'
 
-  def __init__(self, video_id, threshold, comment_len_warn):
-    super().__init__(video_id, NotUseMPLGJudgement.NG_COMMENT_DIR, threshold, comment_len_warn)
+  def __init__(self, video_id, threshold):
+    super().__init__(video_id, NotUseMPLGJudgement.NG_COMMENT_DIR, threshold)
 
   def import_ng_pattern(self, path):
     """ NGパターンの読み込み
@@ -430,8 +406,8 @@ class UseMPLGJudegement(JudgementInterface):
   # NGパターンの形態素解析結果を配置しているファイルパス
   NG_PATTERN_DIR = './input/ng_pattern/**'
 
-  def __init__(self, video_id, threshold, comment_len_warn):
-    super().__init__(video_id, UseMPLGJudegement.NG_PATTERN_DIR, threshold, comment_len_warn)
+  def __init__(self, video_id, threshold):
+    super().__init__(video_id, UseMPLGJudegement.NG_PATTERN_DIR, threshold)
 
   def import_ng_pattern(self, path):
     """
