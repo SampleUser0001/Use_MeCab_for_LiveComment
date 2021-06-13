@@ -355,6 +355,23 @@ class JudgementInterface():
             return_value_list.append(line)
     return return_value_list
 
+  @classmethod
+  def get_lang(cls, text):
+    """
+    引数で渡された文字列の言語を返す。
+
+    Parameters:
+    ----
+    text : string
+      対象の文字列
+
+    Returns:
+    ----
+    string : 引数で渡された文字列の言語
+    """
+    isReliable, textBytesFound, details = cld2.detect(message)
+    return details[0][1]
+
 class NotUseMPLGJudgement(JudgementInterface):
   """ NG判定時に形態素解析を使用しない """
 
