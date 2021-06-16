@@ -73,18 +73,92 @@ class JudgementInterface():
     pickup_comments = self.pickup_comment(live_comments)
     logger.info("pickup_comments len : {}".format(len(pickup_comments)))
 
-    judged_ng_comments, self.result_ng_channels = \
-      self.judgement( \
-        live_comments,\
-        pickup_comments, \
-        ng_patterns, \
-        ng_channels, \
-        self.threshold)
+    # NG判定, WARN判定を行う
+    logger.info("threshold: {}".format(threshold))
+    logger.info("ng_channels len: {}".format(len(ng_channels)))
+
+    # 言語判定
+    # key : コメントID
+    # value : lang
+    lang_comment = {}
+
+    # 判定でNGになったコメント
+    # key : コメントID
+    # value : dict {
+    #   ng_channel (必須) : チャンネルURL
+    #   ng_comment (任意) : {
+    #     ng_pattern : ng_patternのキー, または元のNGパターンのコメント
+    #     similarity : 類似度
+    #   }
+    #   ng_pattern (必須) : 配列。どのパターンで引っかかったか。 ["comment","channel"]
+    # }
+    judged_ng_comments = {}
+
+    # 判定でWARNになったコメント
+    # key : コメントID
+    # value : dict {
+    #   comment : string コメント
+    #   language : string 言語
+    #   length : int 文字列長
+    #   channel : string チャンネルURL
+    #   pattern : array どのパターンで引っかかったか。 ["length"]
+    # }
+    judged_warn_comments = {}
+
+    for key in pickup_comments:
+      # コメント取得
+      comment = pickup_comments[key]
+
+      # 言語判定
+      comment_language = JudgementInterface.get_lang(comment)
+      lang_comment[key] = comment_language
+
+      # NG判定
+      # コメントのパターンからNG判定する。
+      # 形態素解析有りと無しでNGパターンの型が異なるので、ポリモーフィズムを使う。
+      ng, ng_comment, judgement_pattern = self.judgement_by_pattern(comment, ng_patterns, threshold)
+
+      # チャンネルURLから判断
+      channel_url = comments[key]['authorDetails']['channelUrl']
+      if channel_url in ng_channels:
+        ng = True
+        judgement_pattern.append('channel')
+
+      # どのチェックで引っかかったかはコメントIDをキーに登録
+      if ng:
+        ng_comment['ng_channel'] = channel_url
+        judged_ng_comments[key] = ng_comment
+        if channel_url not in self.result_ng_channels:
+          self.result_ng_channels.append(channel_url)
+        # NGで引っかかったらWARN判定しない。
+        continue
+
+      # WARN判定
+      warn_pattern = []
+      # 文字列長判定
+      if comment_language in self.LANG_LEN_DIC:
+        comment_length = len(comment)
+        if comment_length > self.LANG_LEN_DIC[comment_language]:
+          warn = True
+          warn_pattern.append('length')
+
+      if warn:
+        judged_warn_comments[key] = {
+          'comment' : comment,
+          'language' : comment_language,
+          'length' : comment_length,
+          'channel' : channel_url,
+          'pattern' : warn_pattern
+        }
+
     logger.info("judged_ng_comments len : {}".format(len(judged_ng_comments)))
     logger.info("result_ng_channels len : {}".format(len(self.result_ng_channels)))
+    logger.info("judged_warn_comments len : {}".format(len(judged_warn_comments)))
 
+    # TODO judged_warn_comments をマージする
+    # 判定結果をマージする
     self.result_all_comments , self.result_ok_comments , self.result_ng_comments = \
-      self.merge_comments(live_comments, judged_ng_comments)
+      self.merge_comments(live_comments, judged_ng_comments, judged_warn_comments)
     logger.info("result_ok_comments len : {}".format(len(self.result_ok_comments)))
 
   def get_result_all_comments(self):
@@ -185,77 +259,11 @@ class JudgementInterface():
   
     return morphological_analysis_result
     
-  def judgement(self, comments, pickup_comments, ng_patterns, ng_channels ,threshold):
-    """ NG判定を行う。
-    
-    Paramters:
-    ----
-    comments : dict
-      インポートしたコメント。
-      JudgementInterface.import_live_comments関数の戻り値。
-    pickup_comments : dict
-      key : commentsのキーと同値
-      value : コメントの形態素解析結果 or コメント本体 (どちらを保持しているかは実装クラス次第)
-    ng_patterns : dict or list
-      NGパターン。
-      形態素解析を使う場合はdict。
-      形態素解析を使わない場合はlist。
-    ng_channels : list
-      NG判定するチャンネル一覧
-    threshold : float
-      類似度のしきい値。
-      NGパターンと比較して、類似度がこの値以上の場合、NGと判断する。
-
-    Returns:
-    ----
-    ng_comments : dict型。NG判定されたコメントを返す。
-      key : コメントID
-      value : dict {
-        ng_channel (必須) : チャンネルURL
-        ng_comment (任意) : {
-          ng_pattern : ng_patternのキー, または元のNGパターンのコメント
-          similarity : 類似度
-        } 
-        ng_pattern (必須) : 配列。どのパターンで引っかかったか。 ["comment","channel"]
-      }
-    ng_channels : list
-      NG判定したチャンネル一覧
-    """
-    logger.info("threshold: {}".format(threshold))
-    logger.info("ng_channels len: {}".format(len(ng_channels)))
-    
-    # 戻り値
-    return_ng_comments = {}
-    return_ng_channels = []
-
-    for key in pickup_comments:
-      # コメント取得
-      comment = pickup_comments[key]
-
-      # コメントのパターンからNG判定する。
-      # 形態素解析有りと無しでNGパターンの型が異なるので、ポリモーフィズムを使う。
-      ng, ng_comment, judgement_pattern = self.judgement_by_pattern(comment, ng_patterns, threshold)
-
-      # チャンネルURLから判断
-      channel_url = comments[key]['authorDetails']['channelUrl']
-      if channel_url in ng_channels:
-        ng = True
-        judgement_pattern.append('channel')
-  
-      # どのチェックで引っかかったかはコメントIDをキーに登録
-      if ng:
-        ng_comment['ng_channel'] = channel_url
-        return_ng_comments[key] = ng_comment
-        if channel_url not in return_ng_channels:
-          return_ng_channels.append(channel_url)
-
-    return return_ng_comments, return_ng_channels
-
   @abstractmethod
   def judgement_by_pattern(self, comment, ng_patterns, threshold):
     pass
 
-  def merge_comments(self, comments, ng_comments):
+  def merge_comments(self, comments, ng_comments, warn_comments):
     """
     コメントにNG情報を付与する。
     
@@ -265,7 +273,9 @@ class JudgementInterface():
       JudgementInterface.import_live_commentsメソッドの戻り値。
     ng_comments : dict
       JudgementInterface.judgementメソッドの戻り値のうち、ng_comments。
-     
+    warn_comments : dict
+
+
     Returns:
     ----
     return_comment_list : list[dict]
@@ -284,6 +294,10 @@ class JudgementInterface():
     ng_only_comments : list[dict]
       NGコメント一覧
     """
+    # TODO judged_warn_comments をマージする
+    # TODO Paramters を修正する
+    # TODO Returns を修正する（WARNを出力するか？）
+
     return_comment_list = []
     ok_only_comments = []
     ng_only_comments = []
