@@ -62,11 +62,12 @@ lang : "string コメントの言語"
 ... ,
 ng_flg : true or false ,
 ng_info : {
-    pattern : "string NG判定されたパターン",
-    similarity : 小数 元のコメントとパターンとの類似度
-},
-ng_channel : "string NGコメントをしたチャンネルURL",
-ng_pattern : "array[string] どのチェックで引っかかったか"
+    ng_comment : {
+        pattern : "string NG判定されたパターン",
+        similarity : 小数 元のコメントとパターンとの類似度
+    },
+    ng_channel : "string NGコメントをしたチャンネルURL"
+}
 ```
 
 ##### 出力パターン
@@ -75,10 +76,9 @@ ng_pattern : "array[string] どのチェックで引っかかったか"
 | :-- | :------------ | :------------ | :------------ | :----------- |
 | ng_flg | false | true | true | true |
 | ng_info | 出力されない | 出力されない | 出力される | 出力される |
-| ng_info - pattern | 出力されない | 出力されない | 比較対象の形態素解析結果 | 比較対象のメッセージ |
-| ng_info - similarity | 出力されない | 出力されない | 元のコメントと比較対象の類似度 | 元のコメントと比較対象の類似度 |
-| ng_channel | 出力されない | 投稿者のチャンネルURL | 投稿者のチャンネルURL | 投稿者のチャンネルURL |
-| ng_pattern |  出力されない | channel | comment | comment |
+| ng_info - ng_comment - pattern | 出力されない | 出力されない | 比較対象の形態素解析結果 | 比較対象のメッセージ |
+| ng_info - ng_comment - similarity | 出力されない | 出力されない | 元のコメントと比較対象の類似度 | 元のコメントと比較対象の類似度 |
+| ng_info - ng_channel | 出力されない | 投稿者のチャンネルURL | 投稿者のチャンネルURL | 投稿者のチャンネルURL |
 
 ##### 備考
 
@@ -91,7 +91,9 @@ ng_pattern : "array[string] どのチェックで引っかかったか"
 ``` json
 ... ,
 warn_flg : true or false ,
-warn_info : {
+warn_comment_info {
+    lang : コメント言語,
+    length : コメント帳
 },
 warn_channel : "string WARNコメントをしたチャンネルURL",
 warn_pattern : "array[string] どのチェックで引っかかったか"
@@ -100,30 +102,21 @@ warn_pattern : "array[string] どのチェックで引っかかったか"
 ##### 出力パターン
 
 | jsonキー | OK(WARNではない) | コメント長 |
-| :-- | :------------ | :------------ | :------------ | :----------- |
+| :-- | :------------ | :------------ |
 | warn_flg | false | true |
-| warn_info | 出力されない | 出力される |
-| warn_info - lang | 出力されない | コメントの言語 |
-| warn_info - len | 出力されない | 出力されない | 比較対象の形態素解析結果 | 比較対象のメッセージ |
-| warn_info - similarity | 出力されない | 出力されない | 元のコメントと比較対象の類似度 | 元のコメントと比較対象の類似度 |
-| warn_channel | 出力されない | 投稿者のチャンネルURL | 投稿者のチャンネルURL | 投稿者のチャンネルURL |
-| warn_pattern |  出力されない | channel | comment | comment |
-
-##### 備考
-
-- ng_pattern
-  - channel, commentの両方が出力される可能性がある。
-  - 出力されない場合は空の配列にもならない。
-
+| warn_comment_info | 出力されない | 出力される |
+| warn_comment_info - lang | 出力されない | コメントの言語 |
+| warn_comment_info - len | 出力されない | コメント長 |
+| warn_channel | 出力されない | 投稿者のチャンネルURL |
+| warn_pattern | 出力されない | length |
 
 ### ng_channel配下
 
 ``` txt
 http://www.youtube.com/channel/${チャンネルID}
-...
 ```
 
-### ok_message, ng_message配下
+### ok_message, ng_message, warn_message配下
 
 ``` json
 [

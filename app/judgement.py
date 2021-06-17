@@ -51,6 +51,7 @@ class JudgementInterface():
     self.result_all_comments = None
     self.result_ok_comments = None
     self.result_ng_comments = None
+    self.result_warn_comments = None
     self.result_ng_channels = None
 
     self.LANG_LEN_DIC = {}
@@ -97,11 +98,12 @@ class JudgementInterface():
     # 判定でWARNになったコメント
     # key : コメントID
     # value : dict {
-    #   comment : string コメント
-    #   language : string 言語
-    #   length : int 文字列長
-    #   channel : string チャンネルURL
-    #   pattern : array どのパターンで引っかかったか。 ["length"]
+    #   warn_comment_info : {
+    #     lang : コメント言語, 
+    #     length : 類似度
+    #   } 
+    #   warn_channel : チャンネルURL,
+    #   warn_pattern : どのパターンで判定されたか ["length"]
     # }
     judged_warn_comments = {}
 
@@ -116,6 +118,7 @@ class JudgementInterface():
       # NG判定
       # コメントのパターンからNG判定する。
       # 形態素解析有りと無しでNGパターンの型が異なるので、ポリモーフィズムを使う。
+      # TODO ng_commentの構成がコメント、READMEと一致しているか確認する
       ng, ng_comment, judgement_pattern = self.judgement_by_pattern(comment, ng_patterns, threshold)
 
       # チャンネルURLから判断
@@ -144,11 +147,12 @@ class JudgementInterface():
 
       if warn:
         judged_warn_comments[key] = {
-          'comment' : comment,
-          'language' : comment_language,
-          'length' : comment_length,
-          'channel' : channel_url,
-          'pattern' : warn_pattern
+          AddWarnInfoKeyEnum.WARN_COMMENT_INFO.value: {
+            AddWarnInfoKeyEnum.LANG.value: comment_language,
+            AddWarnInfoKeyEnum.LENGTH.value: comment_length
+          },
+          AddWarnInfoKeyEnum.WARN_CHANNEL.value: channel_url,
+          AddWarnInfoKeyEnum.WARN_PATTERN.value: warn_pattern
         }
 
     logger.info("judged_ng_comments len : {}".format(len(judged_ng_comments)))
@@ -157,9 +161,10 @@ class JudgementInterface():
 
     # TODO judged_warn_comments をマージする
     # 判定結果をマージする
-    self.result_all_comments , self.result_ok_comments , self.result_ng_comments = \
+    self.result_all_comments , self.result_ok_comments , self.result_ng_comments , self.result_warn_comments = \
       self.merge_comments(live_comments, judged_ng_comments, judged_warn_comments)
     logger.info("result_ok_comments len : {}".format(len(self.result_ok_comments)))
+    # TODO ok_message, ng_message, warn_message配下出力を切り離す
 
   def get_result_all_comments(self):
     return self.result_all_comments
@@ -169,6 +174,8 @@ class JudgementInterface():
     return self.result_ng_comments
   def get_result_ng_channels(self):
     return self.result_ng_channels
+  def get_result_warn_comments(self):
+    return self.result_warn_comments
 
   def import_live_comments(self, video_id):
     """
@@ -264,6 +271,7 @@ class JudgementInterface():
     pass
 
   def merge_comments(self, comments, ng_comments, warn_comments):
+    # TODO READMEとコメントで差分がある。実際のコメントを確認する。
     """
     コメントにNG情報を付与する。
     
@@ -272,9 +280,18 @@ class JudgementInterface():
     comments : dict
       JudgementInterface.import_live_commentsメソッドの戻り値。
     ng_comments : dict
-      JudgementInterface.judgementメソッドの戻り値のうち、ng_comments。
+      NG判定されたコメント
     warn_comments : dict
-
+      WARN判定されたコメント
+      key : コメントID
+      warn_info : dict {
+        warn_comment_info : {
+          lang : コメント言語, 
+          length : 類似度
+        } 
+        warn_channel : チャンネルURL,
+        warn_pattern : どのパターンで判定されたか ["length"]
+      },
 
     Returns:
     ----
@@ -282,25 +299,36 @@ class JudgementInterface():
       コメントの配列。元のコメントに下記を追加する。
       ng_flg : true or false
       ng_info : dict {
-        ng_channel (必須) : チャンネルURL
         ng_comment (任意) : {
-          ng_pattern_key : ng_patternのキー, 
+          pattern : ng_patternのキー, 
           similarity : 類似度
         } 
-        ng_pattern (必須) : 配列。どのパターンで引っかかったか。 ["comment","channel"]
-      }
+        ng_channel (必須) : チャンネルURL
+      },
+      warn_flg : true or false
+      warn_info : dict {
+        warn_comment_info : {
+          lang : コメント言語, 
+          length : 類似度
+        } 
+        warn_channel : チャンネルURL,
+        warn_pattern : どのパターンで判定されたか ["length"]
+      },
     ok_only_comments : list[dict]
       OKコメント一覧
     ng_only_comments : list[dict]
       NGコメント一覧
+    warn_only_comments : list[dict]
+      WARNコメント一覧
     """
     # TODO judged_warn_comments をマージする
     # TODO Paramters を修正する
-    # TODO Returns を修正する（WARNを出力するか？）
+    # TODO WARNを判定した箇所で生成する
 
     return_comment_list = []
     ok_only_comments = []
     ng_only_comments = []
+    warn_only_comments = []
   
     for comment_id in comments:
       comment_info = comments[comment_id]
@@ -316,7 +344,7 @@ class JudgementInterface():
       DISPLAY_NAME_ORIGIN = OutputCommentKeyEnum.DISPLAY_NAME.get_origin_key()
       DISPLAY_MESSAGE_ORIGIN = OutputCommentKeyEnum.DISPLAY_MESSAGE.get_origin_key()
   
-      # ng_only_commentsかok_only_commentsに追加する用の変数。
+      # ng_only_comments, warn_only_comments, ok_only_commentsに追加する用の変数。
       tmp_comment = {
         ID :              comment_info[ID_ORIGIN[0]],
         CHANNEL_ID :      comment_info[CHANNEL_ID_ORIGIN[0]][CHANNEL_ID_ORIGIN[1]],
@@ -326,9 +354,16 @@ class JudgementInterface():
       
       if comment_id in ng_comments:
         comment_info[AddNGInfoKeyEnum.NG_FLG_KEY.value] = True
+        comment_info[AddWarnInfoKeyEnum.WARN_FLG.value] = False
         comment_info[AddNGInfoKeyEnum.NG_INFO_KEY.value] = ng_comments[comment_id]
         ng_only_comments.append(tmp_comment)
+      else if comment_id in warn_comments:
+        comment_info[AddNGInfoKeyEnum.NG_FLG_KEY.value] = False
+        comment_info[AddWarnInfoKeyEnum.WARN_FLG.value] = True
+        comment_info[AddNGInfoKeyEnum.WARN_INFO.value] = warn_comments[comment_id]
+        warn_only_comments.append(tmp_comment)        
       else:
+        comment_info[AddNGInfoKeyEnum.NG_FLG_KEY.value] = False
         comment_info[AddNGInfoKeyEnum.NG_FLG_KEY.value] = False
         ok_only_comments.append(tmp_comment)
   
