@@ -32,6 +32,7 @@ OUTPUT_DIR_ALL = './output/all/'
 OUTPUT_DIR_NG_CHANNEL = './output/ng_channel/'
 OUTPUT_DIR_OK_MESSAGES = './output/ok_message/'
 OUTPUT_DIR_NG_MESSAGES = './output/ng_message/'
+OUTPUT_DIR_WARN_MESSAGES = './output/warn_message/'
 
 if __name__ == '__main__':
   logger.info("start.")
@@ -65,6 +66,10 @@ if __name__ == '__main__':
   # NGに設定したコメントのみを出力
   with open(OUTPUT_DIR_NG_MESSAGES + 'result_' + VIDEO_ID + '.json', encoding='utf-8' , mode='w') as f:
     f.write(json.dumps(judgement.get_result_ng_comments()))
+
+  # WARNに設定したコメントのみを出力
+  with open(OUTPUT_DIR_WARN_MESSAGES + 'result_' + VIDEO_ID + '.json', encoding='utf-8' , mode='w') as f:
+    f.write(json.dumps(judgement.get_result_warn_comments()))
 
   logger.info("finish.")
   # logger.debug(json.dumps(result_ng_channels))
