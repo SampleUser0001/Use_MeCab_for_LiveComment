@@ -1,13 +1,14 @@
 # Use MeCab for LiveComment
 
-GoogleAPIで取得したYoutubeLiveコメントをOK/NGに振り分ける。  
+GoogleAPIで取得したYoutubeLiveコメントをOK/WARN/NGに振り分ける。  
 
 ## ディレクトリ構成
 
 ``` txt
 .
 └── app
-    ├── input                     # 入力ファイル一覧
+    ├── input                      # 入力ファイル一覧
+    │   ├── lang_len.tsv          # WARN判定用ファイル。言語ごとの文字列長を取得し、このファイルで定義している文字列長を超えていたらWARNになる。
     │   ├── comment               # 動画ごとのコメントファイルを配置する。
     │   │   ├── ${動画ID}
     │   │   ├── ...
@@ -17,12 +18,12 @@ GoogleAPIで取得したYoutubeLiveコメントをOK/NGに振り分ける。
     │   └── ng_pattern            # NG判定する形態素解析結果を配置する。
     │       └── pmTQqhpHAHs
     ├── log
-    ├── output                    # 実行結果が出力される
-    │   ├── all                   # 元のコメントファイルにOK/NGを付与したjsonを出力
-    │   ├── ng_channel            # NG判定したチャンネル一覧を出力する。
-    │   ├── ng_message            # NG判定したコメントを出力する。
-    │   └── ok_message            # OK判定したコメントを出力する。
-    └── __pycache__
+    └── output                     # 実行結果が出力される
+        ├── all                    # 元のコメントファイルにWARN/NGを付与したjsonを出力
+        ├── ng_channel             # NG判定したチャンネル一覧を出力する。
+        ├── ng_message             # NG判定したコメントを出力する。
+        ├── ok_message             # OK判定したコメントを出力する。
+        └── warn_message           # WARN判定したコメントを出力する。
 ```
 
 ## 入力ファイルフォーマット
@@ -66,7 +67,8 @@ ng_info : {
         pattern : "string NG判定されたパターン",
         similarity : 小数 元のコメントとパターンとの類似度
     },
-    ng_channel : "string NGコメントをしたチャンネルURL"
+    ng_channel : "string NGコメントをしたチャンネルURL",
+    ng_pattern : array 引っかかったパターン ["comment","channel"]
 }
 ```
 
@@ -79,6 +81,7 @@ ng_info : {
 | ng_info - ng_comment - pattern | 出力されない | 出力されない | 比較対象の形態素解析結果 | 比較対象のメッセージ |
 | ng_info - ng_comment - similarity | 出力されない | 出力されない | 元のコメントと比較対象の類似度 | 元のコメントと比較対象の類似度 |
 | ng_info - ng_channel | 出力されない | 投稿者のチャンネルURL | 投稿者のチャンネルURL | 投稿者のチャンネルURL |
+| ng_info - ng_pattern | 出力されない | channel | comment | comment |
 
 ##### 備考
 
@@ -89,7 +92,6 @@ ng_info : {
 #### WARNコメント
 
 ``` json
-... ,
 warn_flg : true or false ,
 warn_comment_info {
     lang : コメント言語,

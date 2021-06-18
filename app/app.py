@@ -67,7 +67,9 @@ if __name__ == '__main__':
   with open(OUTPUT_DIR_NG_MESSAGES + 'result_' + VIDEO_ID + '.json', encoding='utf-8' , mode='w') as f:
     f.write(json.dumps(judgement.get_result_ng_comments()))
 
-  # WARNに設定したコメント
+  # WARNに設定したコメントのみを出力
+  with open(OUTPUT_DIR_WARN_MESSAGES + 'result_' + VIDEO_ID + '.json', encoding='utf-8' , mode='w') as f:
+    f.write(json.dumps(judgement.get_result_warn_comments()))
 
   logger.info("finish.")
   # logger.debug(json.dumps(result_ng_channels))

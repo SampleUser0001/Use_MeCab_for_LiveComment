@@ -3,8 +3,23 @@ from enum import Enum
 
 class AddNGInfoKeyEnum(Enum):
   """ 取り込んだコメントにNG情報を追加する際のキーを保持する。"""
-  NG_FLG_KEY = 'ng_flg'
-  NG_INFO_KEY = 'ng_info'
+  NG_FLG = 'ng_flg'
+  NG_INFO = 'ng_info'
+  NG_COMMENT = 'ng_comment'
+  PATTERN = 'pattern'
+  SIMILARITY = 'similarity'
+  NG_CHANNEL = 'ng_channel'
+  NG_PATTERN = 'ng_pattern'
+
+class AddWarnInfoKeyEnum(Enum):
+  """ 取り込んだコメントにNG情報を追加する際のキーを保持する。"""
+  WARN_FLG = 'warn_flg'
+  WARN_INFO = 'warn_info'
+  WARN_COMMENT_INFO = 'warn_comment_info'
+  LANG = 'lang'
+  LENGTH = 'length'
+  WARN_CHANNEL = 'warn_channel'
+  WARN_PATTERN = 'warn_pattern'
 
 class OutputCommentKeyEnum(Enum):
   ID = ('id', ['id'])
